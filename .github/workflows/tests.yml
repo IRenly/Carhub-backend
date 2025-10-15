@@ -43,8 +43,5 @@ jobs:
       - name: Generate Application Key
         run: php artisan key:generate
 
-      - name: Build Assets
-        run: npm run build
-
       - name: Tests
         run: ./vendor/bin/phpunit
