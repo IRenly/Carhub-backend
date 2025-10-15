@@ -12,14 +12,17 @@ return new class extends Migration
      */
     public function up(): void
     {
+        // Intentar eliminar el índice único anterior si existe
         Schema::table('cars', function (Blueprint $table) {
-            // Eliminar el índice único existente en VIN
-            $table->dropUnique(['vin']);
+            try {
+                $table->dropUnique(['vin']);
+            } catch (\Throwable $e) {
+                // Ignorar si el índice no existía
+            }
         });
-        
-        // En SQL Server, crear un índice único filtrado que excluya NULLs
-        // Esto permite múltiples NULLs pero mantiene la unicidad para valores no-nulos
-        DB::statement('CREATE UNIQUE INDEX cars_vin_unique_filtered ON cars (vin) WHERE vin IS NOT NULL AND vin != \'\'');
+
+        // Crear índice único que ignora cadenas vacías (solo en MySQL 8+)
+        DB::statement('CREATE UNIQUE INDEX cars_vin_unique_filtered ON cars ((NULLIF(vin, "")))');
     }
 
     /**
@@ -27,11 +30,13 @@ return new class extends Migration
      */
     public function down(): void
     {
-        // Eliminar el índice filtrado
-        DB::statement('DROP INDEX IF EXISTS cars_vin_unique_filtered ON cars');
-        
+        try {
+            DB::statement('DROP INDEX cars_vin_unique_filtered ON cars');
+        } catch (\Throwable $e) {
+            // Ignorar si no existe
+        }
+
         Schema::table('cars', function (Blueprint $table) {
-            // Restaurar el índice único original
             $table->unique('vin');
         });
     }
