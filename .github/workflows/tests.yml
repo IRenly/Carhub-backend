@@ -21,7 +21,7 @@ jobs:
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
-          php-version: 8.4
+          php-version: 8.3   # ⚠️ usa 8.3 en lugar de 8.4 (más estable)
           tools: composer:v2
           coverage: xdebug
 
@@ -34,14 +34,25 @@ jobs:
       - name: Install Node Dependencies
         run: npm ci
 
-      - name: Install Dependencies
+      - name: Install Composer Dependencies
         run: composer install --no-interaction --prefer-dist --optimize-autoloader
 
       - name: Copy Environment File
         run: cp .env.example .env
 
+      - name: Generate JWT secret
+        run: php artisan jwt:secret --force
+
       - name: Generate Application Key
         run: php artisan key:generate
 
-      - name: Tests
-        run: ./vendor/bin/phpunit
+      # ✅ Paso opcional: limpiar y cachear configuración
+      - name: Optimize Laravel
+        run: php artisan config:cache && php artisan route:cache
+
+      # ✅ Paso opcional: migraciones si tus tests las usan
+      - name: Run Migrations
+        run: php artisan migrate --force
+
+      - name: Run Tests
+        run: php artisan test --stop-on-failure
